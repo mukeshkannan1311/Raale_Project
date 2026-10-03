@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { DashboardPage } from './pages/DashboardPage';
@@ -12,6 +12,7 @@ import { EdgeCasesPage } from './pages/EdgeCasesPage';
 import { ValidationPage } from './pages/ValidationPage';
 import { EthicsPage } from './pages/EthicsPage';
 import { DeploymentChecklistPage } from './pages/DeploymentChecklistPage';
+import { AuditLogPage } from './pages/AuditLogPage';
 
 export const App: React.FC = () => {
   return (
@@ -25,15 +26,23 @@ export const App: React.FC = () => {
           <main className="flex-1 overflow-y-auto bg-slate-950/90">
             <Routes>
               <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/discrepancies" element={<DiscrepancyFinderPage />} />
+              <Route path="/discrepancies/:id" element={<DiscrepancyFinderPage />} />
+              <Route path="/scan-trail" element={<ScanTrailExplorerPage />} />
               <Route path="/scan-trails" element={<ScanTrailExplorerPage />} />
+              <Route path="/warehouse" element={<WarehouseMapPage />} />
               <Route path="/warehouse-map" element={<WarehouseMapPage />} />
               <Route path="/assignments" element={<AssignmentsPage />} />
+              <Route path="/safety" element={<AssignmentsPage />} />
               <Route path="/experiments" element={<ExperimentsPage />} />
               <Route path="/edge-cases" element={<EdgeCasesPage />} />
               <Route path="/validation" element={<ValidationPage />} />
-              <Route path="/ethics" element={<EthicsPage />} />
+              <Route path="/deployment" element={<DeploymentChecklistPage />} />
               <Route path="/checklist" element={<DeploymentChecklistPage />} />
+              <Route path="/ethics" element={<EthicsPage />} />
+              <Route path="/audit" element={<AuditLogPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
         </div>

@@ -1,137 +1,174 @@
-from datetime import datetime, timedelta
-import uuid
 from typing import List, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.models.models import Discrepancy, PutawayScan, MoveEvent, PickFailure, CycleCount, AuditLog
-from app.schemas.schemas import DiscrepancyResponse, DiscrepancyActionRequest
-from app.ml.engine import discrepancy_engine
+from app.models.models import Discrepancy, Inventory, AuditLog
+from app.schemas.schemas import DiscrepancyResponse, PredictLocationRequest, PredictionResponse, DiscrepancyActionRequest
+from app.services.discrepancy_service import detect_all_discrepancies
+from app.ml.prediction_engine import predict_actual_location, get_baseline_prediction
 
-router = APIRouter(prefix="/api/discrepancies", tags=["Discrepancies"])
+router = APIRouter(tags=["Discrepancies & Predictions"])
 
-@router.get("", response_model=List[DiscrepancyResponse])
-def list_discrepancies(
-    zone: Optional[str] = None,
-    priority: Optional[str] = None,
+@router.get("/api/discrepancies", response_model=List[DiscrepancyResponse])
+def get_discrepancies(
     status: Optional[str] = None,
-    min_confidence: Optional[float] = None,
+    priority: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(Discrepancy)
-    if priority:
-        query = query.filter(Discrepancy.priority == priority)
     if status:
         query = query.filter(Discrepancy.status == status)
-    if min_confidence:
-        query = query.filter(Discrepancy.confidence >= min_confidence)
+    if priority:
+        query = query.filter(Discrepancy.priority == priority)
+    return query.order_by(Discrepancy.created_at.desc()).all()
+
+@router.get("/api/discrepancies/{id}", response_model=DiscrepancyResponse)
+def get_discrepancy_by_id(id: str, db: Session = Depends(get_db)):
+    disc = db.query(Discrepancy).filter(Discrepancy.id == id).first()
+    if not disc:
+        raise HTTPException(status_code=404, detail=f"Discrepancy with ID '{id}' not found.")
+    return disc
+
+@router.post("/api/discrepancies/detect")
+def run_discrepancy_detection(db: Session = Depends(get_db)):
+    results = detect_all_discrepancies(db)
     
-    discrepancies = query.all()
-
-    # If database discrepancies table is empty, generate from seed SKUs dynamically
-    if not discrepancies:
-        skus_with_failures = db.query(PickFailure.sku).distinct().all()
-        sku_list = [s[0] for s in skus_with_failures] or ["MED-1042"]
-        
-        for sku in sku_list:
-            pred = discrepancy_engine.predict_discrepancy(db, sku)
-            disc = Discrepancy(
-                id=f"DISC-{sku}",
-                sku=pred["sku"],
-                batch_id=pred["batch_id"],
-                quantity=pred["quantity"],
-                expected_location=pred["expected_location"],
-                predicted_location=pred["predicted_location"],
-                baseline_location=pred["baseline_location"],
-                confidence=pred["confidence"],
-                priority=pred["priority"],
-                sla_deadline=pred["sla_deadline"],
-                status="SUSPECTED",
-                evidence_json=pred["evidence_json"],
-                candidates_json=pred["candidates_json"],
-                safety_blocked=pred["safety_blocked"],
-                safety_reason=pred["safety_reason"]
-            )
-            db.add(disc)
-        db.commit()
-        discrepancies = db.query(Discrepancy).all()
-
-    return discrepancies
-
-@router.get("/{discrepancy_id}", response_model=DiscrepancyResponse)
-def get_discrepancy(discrepancy_id: str, db: Session = Depends(get_db)):
-    disc = db.query(Discrepancy).filter(Discrepancy.id == discrepancy_id).first()
-    if not disc:
-        # Try matching by SKU e.g. DISC-MED-1042 or MED-1042
-        disc = db.query(Discrepancy).filter(Discrepancy.sku == discrepancy_id).first()
-    if not disc:
-        raise HTTPException(status_code=404, detail="Discrepancy record not found.")
-    return disc
-
-@router.post("/{discrepancy_id}/verify", response_model=DiscrepancyResponse)
-def verify_discrepancy(discrepancy_id: str, req: DiscrepancyActionRequest, db: Session = Depends(get_db)):
-    disc = db.query(Discrepancy).filter(Discrepancy.id == discrepancy_id).first()
-    if not disc:
-        raise HTTPException(status_code=404, detail="Discrepancy not found.")
-
-    disc.status = "LOCATED"
-    disc.updated_at = datetime.utcnow()
-
-    # Log audit entry
-    audit = AuditLog(
-        id=str(uuid.uuid4()),
-        event_type="VERIFY_LOCATION",
-        sku=disc.sku,
-        location_id=disc.predicted_location,
-        details_json={"notes": req.notes, "previous_status": "SUSPECTED", "new_status": "LOCATED"}
-    )
-    db.add(audit)
+    db.add(AuditLog(
+        id=f"AUD-{int(datetime.utcnow().timestamp())}",
+        timestamp=datetime.utcnow(),
+        action="DISCREPANCY_DETECTION_RUN",
+        entity="DISCREPANCIES",
+        details_json={"detected_count": len(results)}
+    ))
     db.commit()
-    db.refresh(disc)
-    return disc
+    
+    return {
+        "message": f"Discrepancy detection engine completed successfully.",
+        "detected_count": len(results),
+        "discrepancies": [r.id for r in results]
+    }
 
-@router.post("/{discrepancy_id}/correct", response_model=DiscrepancyResponse)
-def correct_discrepancy(discrepancy_id: str, req: DiscrepancyActionRequest, db: Session = Depends(get_db)):
-    disc = db.query(Discrepancy).filter(Discrepancy.id == discrepancy_id).first()
+@router.post("/api/predict-location", response_model=PredictionResponse)
+def predict_location_endpoint(payload: PredictLocationRequest, db: Session = Depends(get_db)):
+    sku = payload.sku
+    inventory = db.query(Inventory).filter(Inventory.sku == sku).first()
+    if not inventory:
+        raise HTTPException(status_code=404, detail=f"SKU '{sku}' not found in inventory master.")
+        
+    res = predict_actual_location(db, sku)
+    
+    db.add(AuditLog(
+        id=f"AUD-{int(datetime.utcnow().timestamp())}",
+        timestamp=datetime.utcnow(),
+        action="PREDICTION_GENERATED",
+        entity="PREDICTION",
+        sku=sku,
+        location_id=res["predicted_location"],
+        details_json={"confidence": res["confidence"], "top_candidates_count": len(res["top_candidates"])}
+    ))
+    db.commit()
+    
+    return res
+
+@router.get("/api/predictions/{sku}", response_model=PredictionResponse)
+def get_prediction_by_sku(sku: str, db: Session = Depends(get_db)):
+    inventory = db.query(Inventory).filter(Inventory.sku == sku).first()
+    if not inventory:
+        raise HTTPException(status_code=404, detail=f"SKU '{sku}' not found in inventory master.")
+    return predict_actual_location(db, sku)
+
+@router.post("/api/discrepancies/{id}/resolve")
+def resolve_discrepancy(
+    id: str,
+    action: DiscrepancyActionRequest,
+    db: Session = Depends(get_db)
+):
+    disc = db.query(Discrepancy).filter(Discrepancy.id == id).first()
     if not disc:
-        raise HTTPException(status_code=404, detail="Discrepancy not found.")
-
-    verified_loc = req.actual_verified_location or disc.predicted_location
-
-    disc.status = "CORRECTED"
-    disc.expected_location = verified_loc
+        raise HTTPException(status_code=404, detail=f"Discrepancy with ID '{id}' not found.")
+        
+    verified_loc = action.actual_verified_location or disc.predicted_location
+    disc.status = "RESOLVED"
+    disc.correction_status = "RESOLVED"
+    disc.verified_location = verified_loc
+    disc.resolved_at = datetime.utcnow()
     disc.updated_at = datetime.utcnow()
-
-    # Log audit entry
-    audit = AuditLog(
-        id=str(uuid.uuid4()),
-        event_type="MARK_CORRECTED",
+    
+    # Update inventory master location and status
+    inv = db.query(Inventory).filter(Inventory.sku == disc.sku).first()
+    if inv:
+        inv.expected_location_id = verified_loc
+        inv.status = "AVAILABLE"
+        inv.updated_at = datetime.utcnow()
+        db.add(inv)
+        
+    db.add(AuditLog(
+        id=f"AUD-{int(datetime.utcnow().timestamp())}",
+        timestamp=datetime.utcnow(),
+        action="DISCREPANCY_RESOLVED",
+        entity="DISCREPANCY",
         sku=disc.sku,
         location_id=verified_loc,
-        details_json={"notes": req.notes, "corrected_location": verified_loc}
-    )
-    db.add(audit)
+        details_json={"notes": action.notes, "resolved_location": verified_loc}
+    ))
     db.commit()
-    db.refresh(disc)
+    
+    return {
+        "message": f"Discrepancy '{id}' resolved and inventory location updated to '{verified_loc}'.",
+        "discrepancy_id": id,
+        "verified_location": verified_loc
+    }
+
+@router.post("/api/discrepancies/{id}/verify")
+def verify_discrepancy_endpoint(
+    id: str,
+    action: Optional[DiscrepancyActionRequest] = None,
+    db: Session = Depends(get_db)
+):
+    disc = db.query(Discrepancy).filter(Discrepancy.id == id).first()
+    if not disc:
+        raise HTTPException(status_code=404, detail=f"Discrepancy with ID '{id}' not found.")
+    disc.status = "VERIFIED"
+    disc.updated_at = datetime.utcnow()
+    db.add(AuditLog(
+        id=f"AUD-{int(datetime.utcnow().timestamp())}",
+        timestamp=datetime.utcnow(),
+        action="DISCREPANCY_VERIFIED",
+        entity="DISCREPANCY",
+        sku=disc.sku,
+        details_json={"notes": action.notes if action else None}
+    ))
+    db.commit()
     return disc
 
-@router.post("/{discrepancy_id}/report-missing", response_model=DiscrepancyResponse)
-def report_missing(discrepancy_id: str, req: DiscrepancyActionRequest, db: Session = Depends(get_db)):
-    disc = db.query(Discrepancy).filter(Discrepancy.id == discrepancy_id).first()
+@router.post("/api/discrepancies/{id}/correct")
+def correct_discrepancy_endpoint(
+    id: str,
+    action: DiscrepancyActionRequest,
+    db: Session = Depends(get_db)
+):
+    return resolve_discrepancy(id, action, db)
+
+@router.post("/api/discrepancies/{id}/report-missing")
+def report_missing_endpoint(
+    id: str,
+    action: Optional[DiscrepancyActionRequest] = None,
+    db: Session = Depends(get_db)
+):
+    disc = db.query(Discrepancy).filter(Discrepancy.id == id).first()
     if not disc:
-        raise HTTPException(status_code=404, detail="Discrepancy not found.")
-
-    disc.status = "MISSING"
+        raise HTTPException(status_code=404, detail=f"Discrepancy with ID '{id}' not found.")
+    disc.status = "REPORTED_MISSING"
     disc.updated_at = datetime.utcnow()
-
-    audit = AuditLog(
-        id=str(uuid.uuid4()),
-        event_type="REPORT_MISSING",
+    db.add(AuditLog(
+        id=f"AUD-{int(datetime.utcnow().timestamp())}",
+        timestamp=datetime.utcnow(),
+        action="DISCREPANCY_REPORTED_MISSING",
+        entity="DISCREPANCY",
         sku=disc.sku,
-        location_id=disc.expected_location,
-        details_json={"notes": req.notes}
-    )
-    db.add(audit)
+        details_json={"notes": action.notes if action else None}
+    ))
     db.commit()
-    db.refresh(disc)
     return disc

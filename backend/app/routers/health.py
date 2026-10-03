@@ -1,12 +1,11 @@
 from fastapi import APIRouter
-from datetime import datetime
 
-router = APIRouter(prefix="/api/health", tags=["Health"])
+router = APIRouter(tags=["Health Check"])
 
-@router.get("")
+@router.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
-        "service": "PharmaTrace Backend API",
-        "timestamp": datetime.utcnow().isoformat()
+        "service": "PharmaTrace Discrepancy Finder Engine",
+        "version": "1.0.0"
     }

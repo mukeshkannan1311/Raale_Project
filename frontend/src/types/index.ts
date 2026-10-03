@@ -82,6 +82,8 @@ export interface Assignment {
 
 export interface FairnessWorkerRow extends Worker {
   workload_pct: number;
+  current_distance_km?: number;
+  max_distance_km?: number;
   eligible: boolean;
   reason: string;
   fairness_score: number;

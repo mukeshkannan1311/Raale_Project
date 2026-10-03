@@ -11,20 +11,21 @@ import {
   CheckCircle2,
   ShieldAlert,
   ClipboardList,
+  ShieldCheck,
   ChevronRight
 } from 'lucide-react';
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/discrepancies', label: 'Discrepancy Finder', icon: SearchCode },
-  { path: '/scan-trails', label: 'Scan Trails', icon: GitCommit },
-  { path: '/warehouse-map', label: 'Warehouse Map', icon: Grid },
-  { path: '/assignments', label: 'Assignments & Safety', icon: Users },
+  { path: '/scan-trail', label: 'Scan Trails', icon: GitCommit },
+  { path: '/warehouse', label: 'Warehouse Map', icon: Grid },
+  { path: '/safety', label: 'Assignments & Safety', icon: Users },
   { path: '/experiments', label: 'Experiments', icon: FlaskConical },
   { path: '/edge-cases', label: 'Edge Cases Test Harness', icon: Bug },
   { path: '/validation', label: 'Stakeholder Validation', icon: CheckCircle2 },
-  { path: '/ethics', label: 'Ethics & Responsible Ops', icon: ShieldAlert },
-  { path: '/checklist', label: 'Deployment Checklist', icon: ClipboardList },
+  { path: '/audit', label: 'Audit Logs', icon: ShieldCheck },
+  { path: '/deployment', label: 'Deployment Checklist', icon: ClipboardList },
 ];
 
 export const Sidebar: React.FC = () => {

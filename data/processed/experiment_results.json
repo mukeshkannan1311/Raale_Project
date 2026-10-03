@@ -1,0 +1,195 @@
+{
+  "baseline": {
+    "location_accuracy": 33.3,
+    "top1_accuracy": 33.3,
+    "top3_accuracy": 33.3,
+    "false_positive_rate": 0.35,
+    "avg_locate_time_mins": 36.0,
+    "avg_correction_time_mins": 60.0,
+    "missing_stock_located_pct": 33.3,
+    "percentage_corrected": 33.3,
+    "unsafe_assignment_count": 2,
+    "worker_workload_violations": 3
+  },
+  "target": {
+    "location_accuracy": 90.0,
+    "top1_accuracy": 90.0,
+    "top3_accuracy": 95.0,
+    "false_positive_rate": 0.05,
+    "avg_locate_time_mins": 10.0,
+    "avg_correction_time_mins": 15.0,
+    "missing_stock_located_pct": 95.0,
+    "percentage_corrected": 95.0,
+    "unsafe_assignment_count": 0,
+    "worker_workload_violations": 0
+  },
+  "prototype": {
+    "location_accuracy": 91.7,
+    "top1_accuracy": 91.7,
+    "top3_accuracy": 91.7,
+    "false_positive_rate": 0.08,
+    "avg_locate_time_mins": 9.8,
+    "avg_correction_time_mins": 12.5,
+    "missing_stock_located_pct": 91.7,
+    "percentage_corrected": 91.7,
+    "unsafe_assignment_count": 0,
+    "worker_workload_violations": 0
+  },
+  "improvement_pct": {
+    "accuracy_boost_pct": 58.4,
+    "search_time_reduction_pct": 72.8,
+    "f1_score": 0.917
+  },
+  "time_to_locate_experiment": {
+    "total_test_cases": 12,
+    "avg_baseline_time_mins": 36.0,
+    "avg_pharmatrace_time_mins": 9.8,
+    "avg_time_saved_mins": 26.2,
+    "time_saved_percentage": 72.8,
+    "cases": [
+      {
+        "sku": "MED-1002-001",
+        "expected_location": "COLD-A01-R05-B01",
+        "ground_truth_actual": "COLD-A02-R03-B04",
+        "baseline_predicted": "COLD-A02-R01-B02",
+        "pharmatrace_predicted": "COLD-A02-R03-B04",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1003-002",
+        "expected_location": "COLD-A02-R04-B01",
+        "ground_truth_actual": "COLD-A02-R01-B02",
+        "baseline_predicted": "COLD-A01-R04-B04",
+        "pharmatrace_predicted": "COLD-A02-R01-B02",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1004-003",
+        "expected_location": "CONT-A02-R01-B01",
+        "ground_truth_actual": "CONT-A02-R01-B01",
+        "baseline_predicted": "CONT-A02-R01-B01",
+        "pharmatrace_predicted": "CONT-A02-R01-B01",
+        "baseline_search_time_mins": 18.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 10.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1005-004",
+        "expected_location": "HIGH-A01-R05-B03",
+        "ground_truth_actual": "HIGH-A02-R01-B04",
+        "baseline_predicted": "HIGH-A01-R05-B03",
+        "pharmatrace_predicted": "HIGH-A02-R01-B04",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1006-005",
+        "expected_location": "AMBI-A02-R02-B03",
+        "ground_truth_actual": "AMBI-A02-R01-B02",
+        "baseline_predicted": "AMBI-A02-R01-B02",
+        "pharmatrace_predicted": "AMBI-A02-R01-B02",
+        "baseline_search_time_mins": 18.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 10.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1007-006",
+        "expected_location": "CONT-A01-R05-B04",
+        "ground_truth_actual": "CONT-A02-R04-B04",
+        "baseline_predicted": "CONT-A02-R03-B03",
+        "pharmatrace_predicted": "CONT-A02-R04-B04",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1008-007",
+        "expected_location": "COLD-A02-R02-B03",
+        "ground_truth_actual": "COLD-A01-R02-B02",
+        "baseline_predicted": "COLD-A01-R02-B02",
+        "pharmatrace_predicted": "COLD-A01-R02-B02",
+        "baseline_search_time_mins": 18.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 10.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1009-008",
+        "expected_location": "QUAR-A02-R01-B03",
+        "ground_truth_actual": "QUAR-A01-R05-B02",
+        "baseline_predicted": "QUAR-A02-R02-B04",
+        "pharmatrace_predicted": "QUAR-A01-R04-B01",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 35.0,
+        "time_saved_mins": 10.0,
+        "is_correct": false
+      },
+      {
+        "sku": "MED-1010-009",
+        "expected_location": "HIGH-A01-R05-B03",
+        "ground_truth_actual": "HIGH-A02-R04-B03",
+        "baseline_predicted": "HIGH-A02-R02-B01",
+        "pharmatrace_predicted": "HIGH-A02-R04-B03",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1001-010",
+        "expected_location": "AMBI-A02-R02-B03",
+        "ground_truth_actual": "AMBI-A02-R04-B01",
+        "baseline_predicted": "AMBI-A02-R02-B03",
+        "pharmatrace_predicted": "AMBI-A02-R04-B01",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1002-011",
+        "expected_location": "COLD-A02-R04-B01",
+        "ground_truth_actual": "COLD-A01-R05-B01",
+        "baseline_predicted": "COLD-A01-R05-B01",
+        "pharmatrace_predicted": "COLD-A01-R05-B01",
+        "baseline_search_time_mins": 18.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 10.5,
+        "is_correct": true
+      },
+      {
+        "sku": "MED-1003-012",
+        "expected_location": "COLD-A02-R04-B01",
+        "ground_truth_actual": "COLD-A02-R01-B02",
+        "baseline_predicted": "COLD-A01-R04-B04",
+        "pharmatrace_predicted": "COLD-A02-R01-B02",
+        "baseline_search_time_mins": 45.0,
+        "pharmatrace_search_time_mins": 7.5,
+        "time_saved_mins": 37.5,
+        "is_correct": true
+      }
+    ]
+  },
+  "error_analysis": [
+    {
+      "sku": "MED-1009-008",
+      "expected_location": "QUAR-A02-R01-B03",
+      "actual_location": "QUAR-A01-R05-B02",
+      "predicted_location": "QUAR-A01-R04-B01",
+      "confidence": 0.33,
+      "failure_category": "Conflicting scan trail evidence",
+      "investigation_note": "Model ranked actual location lower due to recency decay or conflicting movement events."
+    }
+  ]
+}

@@ -3,10 +3,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # PostgreSQL by default in Docker/Production, SQLite for instant zero-config local dev fallback
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./pharmatrace.db"
-)
+raw_db_url = os.getenv("DATABASE_URL")
+if not raw_db_url:
+    backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(backend_dir, "pharmatrace.db").replace("\\", "/")
+    DATABASE_URL = f"sqlite:///{db_path}"
+else:
+    DATABASE_URL = raw_db_url
 
 # SQLite requires check_same_thread=False
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

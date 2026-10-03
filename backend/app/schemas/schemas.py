@@ -2,12 +2,30 @@ from datetime import datetime
 from typing import List, Optional, Any, Dict
 from pydantic import BaseModel, Field
 
+class InventoryBase(BaseModel):
+    id: str
+    sku: str
+    product_name: str
+    batch_id: str
+    quantity: int
+    expected_location_id: str
+    storage_requirement: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
 class LocationMasterBase(BaseModel):
     location_id: str
+    location_code: str
     zone: str
     aisle: str
     rack: str
+    bin_number: Optional[str] = None
     temperature_class: str
+    storage_type: str
     capacity: int
     current_utilization: int
     status: str
@@ -22,11 +40,11 @@ class PutawayScanBase(BaseModel):
     sku: str
     batch_id: str
     quantity: int
-    from_location: str
-    to_location: str
+    source_location: str
+    destination_location: str
     worker_id: str
     timestamp: datetime
-    zone: str
+    zone: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -74,32 +92,20 @@ class WorkerBase(BaseModel):
     worker_id: str
     name: str
     role: str
+    shift: str = "DAY_SHIFT"
     current_tasks: int
     max_tasks: int
     current_distance: float
     max_distance: float
     shift_status: str
-    zone_authorization: str
+    authorized_zones: str
+    status: str = "ACTIVE"
 
     class Config:
         from_attributes = True
 
-class DriverBase(BaseModel):
-    driver_id: str
-    name: str
-    current_assignments: int
-    max_assignments: int
-    route_distance: float
-    max_route_distance: float
-    shift_status: str
-
-    class Config:
-        from_attributes = True
-
-class EvidenceItem(BaseModel):
-    factor: str
-    impact: str # e.g. "+32%" or "-15%"
-    description: str
+class PredictLocationRequest(BaseModel):
+    sku: str
 
 class CandidateLocation(BaseModel):
     location_id: str
@@ -110,24 +116,37 @@ class CandidateLocation(BaseModel):
     zone: str
     temperature_class: str
 
+class PredictionResponse(BaseModel):
+    model_config = {'protected_namespaces': ()}
+    sku: str
+    expected_location: str
+    predicted_location: str
+    confidence: float
+    model_name: str
+    top_candidates: List[CandidateLocation]
+    explanation: List[Dict[str, str]]
+
 class DiscrepancyResponse(BaseModel):
     id: str
     sku: str
-    batch_id: str
+    batch_id: Optional[str] = None
     quantity: int
     expected_location: str
     predicted_location: str
-    baseline_location: str
+    baseline_location: Optional[str] = None
+    verified_location: Optional[str] = None
     confidence: float
     priority: str
-    sla_deadline: datetime
+    sla_deadline: Optional[datetime] = None
     status: str
-    evidence_json: List[EvidenceItem]
-    candidates_json: List[CandidateLocation]
+    correction_status: str
+    evidence_json: Optional[List[Dict[str, Any]]] = None
+    candidates_json: Optional[List[CandidateLocation]] = None
     safety_blocked: bool
     safety_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    resolved_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -135,6 +154,18 @@ class DiscrepancyResponse(BaseModel):
 class DiscrepancyActionRequest(BaseModel):
     notes: Optional[str] = None
     actual_verified_location: Optional[str] = None
+
+class SafetyCheckRequest(BaseModel):
+    worker_id: str
+    location_id: str
+    sku: str
+
+class SafetyCheckResponse(BaseModel):
+    allowed: bool
+    reason: str
+    worker_workload_status: Dict[str, Any]
+    zone_authorization_status: Dict[str, Any]
+    location_status: Dict[str, Any]
 
 class AssignmentCreateRequest(BaseModel):
     discrepancy_id: str
@@ -150,6 +181,24 @@ class AssignmentResponse(BaseModel):
     fairness_score: float
     workload_utilization_pct: float
     note: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class UserLoginRequest(BaseModel):
+    username: str
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: Dict[str, Any]
+
+class UserResponse(BaseModel):
+    id: str
+    username: str
+    name: str
+    role: str
 
     class Config:
         from_attributes = True
@@ -189,6 +238,7 @@ class ExperimentComparisonResponse(BaseModel):
     prototype: ExperimentMetrics
     improvement_pct: Dict[str, float]
     error_analysis: List[Dict[str, Any]]
+    time_to_locate_experiment: Dict[str, Any]
 
 class EdgeCaseTestResult(BaseModel):
     case_name: str
@@ -216,3 +266,17 @@ class DashboardSummaryResponse(BaseModel):
     recent_discrepancies: List[DiscrepancyResponse]
     zone_discrepancies: Dict[str, int]
     accuracy_comparison: Dict[str, float]
+
+class AuditLogResponse(BaseModel):
+    id: str
+    timestamp: datetime
+    user_id: Optional[str] = None
+    action: str
+    entity: Optional[str] = None
+    sku: Optional[str] = None
+    location_id: Optional[str] = None
+    worker_id: Optional[str] = None
+    details_json: Optional[Dict[str, Any]] = None
+
+    class Config:
+        from_attributes = True

@@ -23,7 +23,8 @@ class SafetyFairnessService:
             return False, f"Worker {worker.name} has exceeded shift walking distance limit ({worker.current_distance:.1f}/{worker.max_distance:.1f} km)."
 
         # 4. Zone Authorization
-        allowed_zones = [z.strip() for z in worker.zone_authorization.split(",")]
+        auth_field = worker.zone_authorization or worker.authorized_zones or ""
+        allowed_zones = [z.strip() for z in auth_field.split(",") if z.strip()]
         if location.zone not in allowed_zones:
             return False, f"Worker {worker.name} lacks security/safety clearance for {location.zone} zone."
 
@@ -70,7 +71,8 @@ class SafetyFairnessService:
             # Low workload % + high distance budget + safe = high fairness score
             fairness_score = 0.0
             if is_safe:
-                fairness_score = (100.0 - workload_pct) * 0.6 + ((w.max_distance - w.current_distance) / w.max_distance * 100.0) * 0.4
+                dist_budget = ((w.max_distance - w.current_distance) / w.max_distance * 100.0) if w.max_distance > 0 else 0.0
+                fairness_score = (100.0 - workload_pct) * 0.6 + dist_budget * 0.4
             
             panel.append({
                 "worker_id": w.worker_id,
